@@ -1,22 +1,25 @@
 const userModel = require("../models/userModel.js");
+const bcrypt = require("bcrypt");
+// const jwt = require("jsonwebtoken");
 
 const signin = async (req, res) => {
   try {
     const { email, password } = req.body;
-    // const userData = await userModel.findOne(j)
-    userModel.findOne({ email: email }).then((user) => {
-      if (user) {
-        if (user.password === password) {
-          return res.status(200).json("Successful");
-        } else {
-          return res.status(404).json({ message: "password is incorrect" });
-        }
-      } else {
-        return res.status(404).send({ message: "No record found!" });
-      }
-    });
+    const user = await userModel.findOne({ email: email });
+    if (!user) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).send({ message: "invalid username or password" });
+    }
+
+    // const userId = user._id;
+    // const token = jwt.sign({ user_id }, secretKey, { expiresIn: "1h" });
+
+    res.json({ message: "successful login" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
@@ -28,14 +31,34 @@ const signup = async (req, res) => {
       !req.body.email ||
       !req.body.password
     ) {
-      return res.status(404).send({
+      return res.status(400).send({
         message: "send all required fields: name, email, password",
       });
     }
-    const user = await userModel.create(req.body);
-    res.status(200).json(user);
+    // const {firstname,lastname,email,password}= req.body;
+    //this also works
+    const { password } = req.body;
+    const salt = await bcrypt.genSalt(10);
+    const hashedpassword = await bcrypt.hash(password, salt);
+
+    // const user = new userModel({
+    //   firstname,
+    //   lastname,
+    //   email,
+    //   password: hashedpassword,
+    // });
+    // const userData = await user.save();
+    //this also works
+    const userData = await userModel.create({
+      ...req.body,
+      password: hashedpassword,
+    });
+    res.status(200).json(userData);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    if (error.code === 11000 && error.keyValue.email) {
+      res.status(409).json({ message: "Email already exists! " });
+    }
+    res.status(500).json({ message: "Server Error!" });
   }
 };
 
