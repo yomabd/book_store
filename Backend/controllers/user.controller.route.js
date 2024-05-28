@@ -1,6 +1,8 @@
 const userModel = require("../models/userModel.js");
 const bcrypt = require("bcrypt");
-// const jwt = require("jsonwebtoken");
+const jwt = require("jsonwebtoken");
+
+const secret = "dhdjks#$kdsh";
 
 const signin = async (req, res) => {
   try {
@@ -14,10 +16,10 @@ const signin = async (req, res) => {
       return res.status(401).send({ message: "invalid username or password" });
     }
 
-    // const userId = user._id;
-    // const token = jwt.sign({ user_id }, secretKey, { expiresIn: "1h" });
+    const payload = { userId: user._id };
+    const token = jwt.sign(payload, secret, { expiresIn: "1h" });
 
-    res.json({ message: "successful login" });
+    res.json({ message: "successful login", token: token });
   } catch (error) {
     res.status(500).json({ message: "Server Error" });
   }
