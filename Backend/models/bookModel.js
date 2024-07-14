@@ -14,6 +14,10 @@ const bookSchema = mongoose.Schema(
       type: Number,
       require: true,
     },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      require: true,
+    },
   },
   {
     timestamps: true,

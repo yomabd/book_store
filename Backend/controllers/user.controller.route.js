@@ -2,8 +2,6 @@ const userModel = require("../models/userModel.js");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-const secret = "dhdjks#$kdsh";
-
 const signin = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -17,7 +15,9 @@ const signin = async (req, res) => {
     }
 
     const payload = { userId: user._id };
-    const token = jwt.sign(payload, secret, { expiresIn: "1h" });
+    const token = jwt.sign(payload, process.env.APP_SECRETE_KEY, {
+      expiresIn: "1h",
+    });
 
     res.json({ message: "successful login", token: token });
   } catch (error) {
@@ -37,9 +37,9 @@ const signup = async (req, res) => {
         message: "send all required fields: name, email, password",
       });
     }
-    // const {firstname,lastname,email,password}= req.body;
+    const { firstname, lastname, email, password } = req.body;
     //this also works
-    const { password } = req.body;
+    // const { password } = req.body;
     const salt = await bcrypt.genSalt(10);
     const hashedpassword = await bcrypt.hash(password, salt);
 
@@ -52,7 +52,9 @@ const signup = async (req, res) => {
     // const userData = await user.save();
     //this also works
     const userData = await userModel.create({
-      ...req.body,
+      firstname,
+      lastname,
+      email,
       password: hashedpassword,
     });
     res.status(200).json(userData);
@@ -64,7 +66,24 @@ const signup = async (req, res) => {
   }
 };
 
+//middleware to verify jwt from the user request
+
+const verifyJWT = (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({ message: "Unathorized user!" });
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.APP_SECRETE_KEY);
+    req.user = { id: decoded.userId };
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+};
+
 module.exports = {
   signin,
   signup,
+  verifyJWT,
 };
